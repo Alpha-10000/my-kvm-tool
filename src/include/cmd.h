@@ -8,7 +8,6 @@ struct cmd_opts {
 	int help;
 	char *root;
 	char *console;
-
 };
 
 void parse_command_line(int argc, char *argv[], struct cmd_opts *opts);

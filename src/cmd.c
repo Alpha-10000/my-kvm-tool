@@ -1,3 +1,4 @@
+#include <err.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,7 +48,7 @@ void parse_command_line(int argc, char *argv[], struct cmd_opts *opts)
 				opts->initrd = optarg;
 				break;
 			default:
-				printf("Error: option index %d\n", opt_ind);
+				err(1, "Option index %d\n", opt_ind);
 				break;
 			}
 		case 'm':
@@ -58,7 +59,7 @@ void parse_command_line(int argc, char *argv[], struct cmd_opts *opts)
 			opts->help = 1;
 			break;
 		default:
-			printf("Error: character code %d\n", c);
+			err(1, "Character code %d\n", c);
 			break;
 		}
 	}

@@ -1,9 +1,9 @@
 CC = gcc
 SRCDIR = src/
 INCLUDEDIR = $(SRCDIR)include
-CFLAGS = -Wall -Wextra -Werror -pedantic -I$(INCLUDEDIR) -g
+CFLAGS = -Wall -Wextra -Werror -pedantic -I$(INCLUDEDIR) -O
 
-SRC = $(addprefix $(SRCDIR), main.c cmd.c)
+SRC = $(addprefix $(SRCDIR), main.c cmd.c kvm.c io.c)
 OBJ = $(SRC:.c=.o)
 
 TESTDIR = tests

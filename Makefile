@@ -1,9 +1,9 @@
 CC = gcc
 SRCDIR = src/
-INCLUDEDIR = $(SRCDIR)include
+INCLUDEDIR = include/
 CFLAGS = -Wall -Wextra -Werror -pedantic -I$(INCLUDEDIR) -O
 
-SRC = $(addprefix $(SRCDIR), main.c cmd.c kvm.c io.c)
+SRC = $(addprefix $(SRCDIR), main.c cmd.c kvm.c io.c kernel.c)
 OBJ = $(SRC:.c=.o)
 
 TESTDIR = tests
@@ -18,12 +18,11 @@ $(EXEC): $(OBJ)
 	$(CC) $(CFLAGS) $^ -o $@
 
 check: all
-	$(MAKE) clean -C $(TESTDIR)
 	$(MAKE) -C $(TESTDIR)
 
 clean:
 	$(RM) $(OBJ)
-	$(MAKE) clean -C $(TESTDIR)
 
 distclean: clean
 	$(RM) $(EXE) $(SRCDIR)*~
+	$(MAKE) clean -C $(TESTDIR)

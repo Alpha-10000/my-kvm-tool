@@ -1,19 +1,14 @@
 CC = gcc
 
-SRC = test.c
-OBJ = $(SRC:.c=.o)
-
-TESTDIT = tests
-
-EXEC = my-kvm-test
+KDIR = minimal-linux
+KBUILD = build-kernel.sh
+KBUILDDIR = $(KDIR)/build
 
 .PHONE : all clean
 
-all: $(EXEC)
-	./my-kvm-test
-
-$(EXEC): $(OBJ)
-	$(CC) $(CFLAGS) $^ -o $@
+all:
+	cd $(KDIR) && chmod +x $(KBUILD)
+	cd $(KDIR) && ./$(KBUILD)
 
 clean:
-	$(RM) $(OBJ) $(EXEC)
+	$(RM) -r $(KBUILDDIR)

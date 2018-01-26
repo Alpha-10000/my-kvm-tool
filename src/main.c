@@ -8,6 +8,8 @@ int main(int argc, char **argv)
 	parse_command_line(argc, argv, &opts);
 	if (!opts.img)
 		err(1, "No kernel image");
+	if (!opts.ram)
+		err(1, "Please specify ram");
 	kvm_run(&opts);
 	return 0;
 }

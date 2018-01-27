@@ -7,7 +7,6 @@
 
 void io_emulate(struct kvm_run *run)
 {
-	//printf("KVM_EXIT_IO: port(0x%x)\n", run->io.port);
 	/*if (ioperm(SERIAL_PORT, 1, 1) == -1)
 	  err(1, "unable to access serial port");*/
 

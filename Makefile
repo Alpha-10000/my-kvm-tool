@@ -2,8 +2,9 @@ CC = gcc
 SRCDIR = src/
 INCLUDEDIR = include/
 CFLAGS = -Wall -Wextra -Werror -pedantic -I$(INCLUDEDIR) -O
+LDFLAGS = -lcapstone
 
-SRC = $(addprefix $(SRCDIR), main.c cmd.c kvm.c io.c kernel.c)
+SRC = $(addprefix $(SRCDIR), main.c cmd.c kvm.c io.c kernel.c disasm.c)
 OBJ = $(SRC:.c=.o)
 
 TESTDIR = tests
@@ -15,7 +16,7 @@ EXEC = my-kvm
 all: $(EXEC)
 
 $(EXEC): $(OBJ)
-	$(CC) $(CFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 check: all
 	$(MAKE) -C $(TESTDIR)

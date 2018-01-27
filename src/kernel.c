@@ -57,7 +57,11 @@ void load_kernel(struct vm_state *vms, struct cmd_opts *opts)
 	if (mem_setup == MAP_FAILED)
 		err(1, "unable to map backing memory");
 	memcpy(mem_kernel, vmlinux, buf.st_size - setup_size);
+
 	kvm_add_region(vms, 0, IMAGE_LOAD_ADDR, opts->ram, (uint64_t)mem_kernel);
+
+	vms->entry = (uint64_t)mem_kernel;
+
 	munmap(img, buf.st_size);
 	close(kfd);
 }

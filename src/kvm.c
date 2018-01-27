@@ -8,6 +8,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include "disasm.h"
 #include "io.h"
 #include "kernel.h"
 #include "kvm.h"
@@ -45,10 +46,6 @@ void kvm_run(struct cmd_opts *opts)
 
 	vms->fd_vcpu = ioctl(vms->fd_vm, KVM_CREATE_VCPU, 0);
 
-	struct kvm_guest_debug dbg;
-	dbg.control |= KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP;
-	ioctl(vms->fd_vcpu, KVM_SET_GUEST_DEBUG, &dbg);
-
 	size_t mmap_sz = ioctl(vms->fd_kvm, KVM_GET_VCPU_MMAP_SIZE, NULL);
 	vms->run = mmap(NULL, mmap_sz, PROT_READ | PROT_WRITE,
 				MAP_SHARED, vms->fd_vcpu, 0);
@@ -57,7 +54,6 @@ void kvm_run(struct cmd_opts *opts)
 
 	struct kvm_sregs sregs;
 	ioctl(vms->fd_vcpu, KVM_GET_SREGS, &sregs);
-
 #define set_segment_selector(Seg, Base, Limit, Sel, Type)		\
 	do {								\
 		Seg.base = Base;					\
@@ -65,11 +61,6 @@ void kvm_run(struct cmd_opts *opts)
 		Seg.g = 1;						\
 		Seg.selector = Sel;					\
 		Seg.type = Type;					\
-		Seg.present = 1;					\
-		Seg.dpl = 0;						\
-		Seg.db = 1;						\
-		Seg.s = 1;						\
-		Seg.l = 0;						\
 	} while (0)
 
 	set_segment_selector(sregs.cs, 0, ~0, BOOT_CS, CS_TYPE);
@@ -78,6 +69,9 @@ void kvm_run(struct cmd_opts *opts)
 	set_segment_selector(sregs.es, 0, ~0, BOOT_DS, DS_TYPE);
 	set_segment_selector(sregs.fs, 0, ~0, BOOT_DS, DS_TYPE);
 	set_segment_selector(sregs.gs, 0, ~0, BOOT_DS, DS_TYPE);
+
+	sregs.cs.db = 1;
+	sregs.ss.db = 1;
 #undef set_segment_selector
 
 	sregs.cr0 |= 1;
@@ -97,7 +91,13 @@ void kvm_run(struct cmd_opts *opts)
 	kvm_dump_infos(vms);
 
 	int stop = 0;
+	struct kvm_guest_debug dbg;
+	memset(&dbg, '\0', sizeof (struct kvm_guest_debug));
+	dbg.control |= KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP;
+
 	while (!stop) {
+		ioctl(vms->fd_vcpu, KVM_SET_GUEST_DEBUG, &dbg);
+
 		int rc = ioctl(vms->fd_vcpu, KVM_RUN, 0);
 		if (rc < 0)
 			warn("KVM_RUN");
@@ -119,8 +119,10 @@ void kvm_run(struct cmd_opts *opts)
 			stop = 1;
 			break;
 		case KVM_EXIT_DEBUG:
-			printf("Debug: %llx\n", vms->run->debug.arch.pc);
-			printf("KVM_EXIT_DEBUG\n");
+			printf("DEBUG: 0x%llx\n", vms->run->debug.arch.pc);
+			uint64_t code = vms->entry + (vms->run->debug.arch.pc - IMAGE_LOAD_ADDR);
+			disasm(code, 0x15, vms->run->debug.arch.pc);
+			//getchar();
 			break;
 		case KVM_EXIT_MMIO:
 			printf("KVM_EXIT_MMIO\n");
@@ -129,7 +131,6 @@ void kvm_run(struct cmd_opts *opts)
 			warnx("Unknown exit reason: 0x%x", vms->run->exit_reason);
 			stop = 1;
 			break;
-
 		}
 	}
 

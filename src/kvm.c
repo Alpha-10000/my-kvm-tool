@@ -26,6 +26,13 @@ void kvm_add_region(struct vm_state *vm, uint32_t flags, uint64_t guest_phys,
 
 }
 
+static void handle_cpuid(struct vm_state *vms)
+{
+	struct kvm_cpuid2 cpuid;
+	ioctl(vms->fd_kvm, KVM_GET_SUPPORTED_CPUID, &cpuid);
+	ioctl(vms->fd_vcpu, KVM_SET_CPUID2, &cpuid);
+}
+
 void kvm_run(struct cmd_opts *opts)
 {
 	struct vm_state *vms = calloc(1, sizeof (struct vm_state));
@@ -88,6 +95,7 @@ void kvm_run(struct cmd_opts *opts)
 	ioctl(vms->fd_vcpu, KVM_SET_REGS, &regs);
 
 	load_kernel(vms, opts);
+	handle_cpuid(vms);
 	kvm_dump_infos(vms);
 
 	int stop = 0;
@@ -122,7 +130,7 @@ void kvm_run(struct cmd_opts *opts)
 			printf("DEBUG: 0x%llx\n", vms->run->debug.arch.pc);
 			uint64_t code = vms->entry + (vms->run->debug.arch.pc - IMAGE_LOAD_ADDR);
 			disasm(code, 0x15, vms->run->debug.arch.pc);
-			//getchar();
+			getchar();
 			break;
 		case KVM_EXIT_MMIO:
 			printf("KVM_EXIT_MMIO\n");

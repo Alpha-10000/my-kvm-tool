@@ -27,6 +27,11 @@ void load_kernel(struct vm_state *vms, struct cmd_opts *opts)
 	if (img == MAP_FAILED)
 		err(1, "unable to mmap linux image");
 
+	char *mem_setup = mmap(NULL, SETUP_LOAD_END - SETUP_LOAD_ADDR,
+			PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	if (mem_setup == MAP_FAILED)
+		err(1, "unable to map backing memory");
+
 	struct boot_params boot;
 	memset(&boot, '\0', sizeof (struct boot_params));
 	ssize_t setup_hdr_sz = 0x0202 + ((char*)img)[0x0201];
@@ -38,13 +43,14 @@ void load_kernel(struct vm_state *vms, struct cmd_opts *opts)
 		err(1, "old kernel version");
 	if (boot.hdr.setup_sects == 0)
 		boot.hdr.setup_sects = SETUP_SECTS;
+
 	boot.hdr.loadflags |= KEEP_SEGMENTS;
 
+	boot.hdr.cmd_line_ptr = SETUP_LOAD_ADDR + CMD_OFFSET;
+	boot.hdr.cmdline_size = opts->kcmd_sz;
+	memcpy(mem_setup + CMD_OFFSET, opts->kcmd, opts->kcmd_sz);
+
 	ssize_t setup_size = (boot.hdr.setup_sects + 1) << 9;
-	char *mem_setup = mmap(NULL, SETUP_LOAD_END - SETUP_LOAD_ADDR,
-			PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-	if (mem_setup == MAP_FAILED)
-		err(1, "unable to map backing memory");
 	memcpy(mem_setup, img, setup_size);
 	memcpy(mem_setup, &boot, sizeof (struct boot_params));
 

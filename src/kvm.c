@@ -96,15 +96,9 @@ void kvm_run(struct cmd_opts *opts)
 
 	load_kernel(vms, opts);
 	handle_cpuid(vms);
-	kvm_dump_infos(vms);
 
 	int stop = 0;
-	struct kvm_guest_debug dbg;
-	memset(&dbg, '\0', sizeof (struct kvm_guest_debug));
-	dbg.control |= KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP;
-
 	while (!stop) {
-		ioctl(vms->fd_vcpu, KVM_SET_GUEST_DEBUG, &dbg);
 
 		int rc = ioctl(vms->fd_vcpu, KVM_RUN, 0);
 		if (rc < 0)
@@ -130,7 +124,6 @@ void kvm_run(struct cmd_opts *opts)
 			printf("DEBUG: 0x%llx\n", vms->run->debug.arch.pc);
 			uint64_t code = vms->entry + (vms->run->debug.arch.pc - IMAGE_LOAD_ADDR);
 			disasm(code, 0x15, vms->run->debug.arch.pc);
-			getchar();
 			break;
 		case KVM_EXIT_MMIO:
 			printf("KVM_EXIT_MMIO\n");

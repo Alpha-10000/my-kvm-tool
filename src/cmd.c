@@ -7,12 +7,27 @@
 
 #include "cmd.h"
 
-static char *get_cmd_arg(char *cmd_arg, const char *var)
+static int is_cmd(const char *arg)
 {
-	size_t n = strlen(var);
-	if (!strncmp(cmd_arg, var, n) && cmd_arg[n] == '=')
-		return cmd_arg + n + 1;
-	return NULL;
+	for (size_t i = 0; arg[i] != '\0'; i++) {
+		if (arg[i] == '=')
+			return 1;
+	}
+	return 0;
+}
+
+static void add_kmd(struct cmd_opts *opts, const char *cmd_arg)
+{
+	int pad = opts->kcmd_sz > 0 ? 2 : 0;
+	size_t arg_sz = strlen(cmd_arg);
+	size_t nsize = opts->kcmd_sz + arg_sz + pad;
+	opts->kcmd = realloc(opts->kcmd, nsize * sizeof (char));
+	if (opts->kcmd_sz > 0) {
+		opts->kcmd[opts->kcmd_sz] = ' ';
+		opts->kcmd[opts->kcmd_sz + 1] = '\0';
+	}
+	opts->kcmd = strncat(opts->kcmd, cmd_arg, arg_sz);
+	opts->kcmd_sz = nsize;
 }
 
 static void dump_options(struct cmd_opts *opts)
@@ -22,14 +37,14 @@ static void dump_options(struct cmd_opts *opts)
 	printf("-m       RAM memory: %d\n", opts->ram);
 	printf("-h       help: %d\n", opts->help);
 	printf("BzImage: %s\n", opts->img);
-	printf("Root FS: %s\n", opts->root);
-	printf("console: %s\n", opts->console);
+	printf("Command line: %s\n", opts->kcmd);
 	printf("\n");
 }
 
 void parse_command_line(int argc, char *argv[], struct cmd_opts *opts)
 {
 	memset(opts, '\0', sizeof(struct cmd_opts));
+	opts->kcmd_sz = 0;
 	for (;;) {
 		int opt_ind = 0;
 		static struct option long_options[] = {
@@ -66,16 +81,11 @@ void parse_command_line(int argc, char *argv[], struct cmd_opts *opts)
 
 	while (optind < argc) {
 		int image = 1;
-#define FIND_ARG(ARG) do {						\
-			if (get_cmd_arg(argv[optind], #ARG)) {		\
-				opts->ARG = get_cmd_arg(argv[optind], #ARG); \
-				image = 0;				\
-			}						\
-		} while (0)
+		if (is_cmd(argv[optind])) {
+			add_kmd(opts, argv[optind]);
+			image = 0;
+		}
 
-		FIND_ARG(root);
-		FIND_ARG(console);
-#undef FIND_ARG
 		if (image)
 			opts->img = argv[optind];
 		optind++;

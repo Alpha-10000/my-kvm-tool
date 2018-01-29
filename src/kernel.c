@@ -1,4 +1,5 @@
 #include <asm/bootparam.h>
+#include <asm/e820.h>
 #include <elf.h>
 #include <err.h>
 #include <fcntl.h>
@@ -49,6 +50,16 @@ void load_kernel(struct vm_state *vms, struct cmd_opts *opts)
 	boot.hdr.cmd_line_ptr = SETUP_LOAD_ADDR + CMD_OFFSET;
 	boot.hdr.cmdline_size = opts->kcmd_sz;
 	memcpy(mem_setup + CMD_OFFSET, opts->kcmd, opts->kcmd_sz);
+
+	boot.e820_entries = E820_NUM;
+
+	boot.e820_table[0].addr = SETUP_LOAD_ADDR;
+	boot.e820_table[0].size = SETUP_LOAD_END - SETUP_LOAD_ADDR;
+	boot.e820_table[0].type = E820_RAM;
+
+	boot.e820_table[1].addr = IMAGE_LOAD_ADDR;
+	boot.e820_table[1].size = opts->ram;
+	boot.e820_table[1].type = E820_RAM;
 
 	ssize_t setup_size = (boot.hdr.setup_sects + 1) << 9;
 	memcpy(mem_setup, img, setup_size);

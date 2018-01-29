@@ -18,16 +18,22 @@ static int is_cmd(const char *arg)
 
 static void add_kmd(struct cmd_opts *opts, const char *cmd_arg)
 {
-	int pad = opts->kcmd_sz > 0 ? 2 : 0;
+	int pad = opts->kcmd_sz > 0 ? 2 : 1;
 	size_t arg_sz = strlen(cmd_arg);
+
 	size_t nsize = opts->kcmd_sz + arg_sz + pad;
+
 	opts->kcmd = realloc(opts->kcmd, nsize * sizeof (char));
+
+	size_t osize = opts->kcmd_sz;
 	if (opts->kcmd_sz > 0) {
-		opts->kcmd[opts->kcmd_sz] = ' ';
-		opts->kcmd[opts->kcmd_sz + 1] = '\0';
+		opts->kcmd[osize] = ' ';
+		osize++;
 	}
-	opts->kcmd = strncat(opts->kcmd, cmd_arg, arg_sz);
-	opts->kcmd_sz = nsize;
+
+	strncpy(opts->kcmd + osize, cmd_arg, arg_sz);
+	opts->kcmd[nsize - 1] = '\0';
+	opts->kcmd_sz = nsize - 1;
 }
 
 static void dump_options(struct cmd_opts *opts)

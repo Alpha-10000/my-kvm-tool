@@ -29,6 +29,8 @@ void kvm_add_region(struct vm_state *vm, uint32_t flags, uint64_t guest_phys,
 static void handle_cpuid(struct vm_state *vms)
 {
 	struct kvm_cpuid2 cpuid;
+	memset(&cpuid, '\0', sizeof (struct kvm_cpuid2));
+	cpuid.nent = CPUID_NUM;
 	ioctl(vms->fd_kvm, KVM_GET_SUPPORTED_CPUID, &cpuid);
 	ioctl(vms->fd_vcpu, KVM_SET_CPUID2, &cpuid);
 }
@@ -50,6 +52,11 @@ void kvm_run(struct cmd_opts *opts)
 	__u64 map_addr = 0xffffc000;
 	ioctl(vms->fd_vm, KVM_SET_IDENTITY_MAP_ADDR, &map_addr);
 	ioctl(vms->fd_vm, KVM_CREATE_IRQCHIP, 0);
+
+	struct kvm_pit_config pit;
+	memset(&pit, '\0', sizeof (struct kvm_pit_config));
+	pit.flags |= KVM_PIT_SPEAKER_DUMMY;
+	ioctl(vms->fd_vm, KVM_CREATE_PIT2, &pit);
 
 	vms->fd_vcpu = ioctl(vms->fd_vm, KVM_CREATE_VCPU, 0);
 
@@ -99,7 +106,6 @@ void kvm_run(struct cmd_opts *opts)
 
 	int stop = 0;
 	while (!stop) {
-
 		int rc = ioctl(vms->fd_vcpu, KVM_RUN, 0);
 		if (rc < 0)
 			warn("KVM_RUN");
@@ -126,7 +132,7 @@ void kvm_run(struct cmd_opts *opts)
 			disasm(code, 0x15, vms->run->debug.arch.pc);
 			break;
 		case KVM_EXIT_MMIO:
-			printf("KVM_EXIT_MMIO\n");
+			//printf("KVM_EXIT_MMIO\n");
 			break;
 		default:
 			warnx("Unknown exit reason: 0x%x", vms->run->exit_reason);

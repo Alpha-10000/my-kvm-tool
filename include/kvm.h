@@ -6,6 +6,8 @@
 
 #include "cmd.h"
 
+#define CPUID_NUM 100
+
 struct vm_state
 {
 	int fd_kvm;

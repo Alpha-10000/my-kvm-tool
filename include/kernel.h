@@ -13,6 +13,7 @@
 #define SETUP_LOAD_END 0xA0000
 
 #define CMD_OFFSET 0x10000
+#define E820_NUM 2
 
 #define IMAGE_LOAD_ADDR 0x100000
 

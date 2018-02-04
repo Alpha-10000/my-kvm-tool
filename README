@@ -1,0 +1,23 @@
+A minimal KVM-based tool able to boot a Linux kernel.
+
+Dependencies:
+  - capstone
+
+Build project:
+  $ make
+
+Get Linux:
+  $ git submodule init
+  $ git submodule update --depth 1
+
+Build kernel and test:
+  $ make check
+
+Usage: my-kvm [options] bzImage [kernel command line]
+Options:
+  --initrd <file>	Specify initial ramdisk
+  -m	   		Specify amount of RAM
+  -h			Display help
+
+Example:
+  $ ./my-kvm path/to/bzImage -m $((4096*8*4096)) console=ttyS0 earlyprintk=serial --initrd path/to/initramfs

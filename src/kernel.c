@@ -23,8 +23,6 @@ void load_initrd(char *mem, struct cmd_opts *opts, struct setup_header *hdr)
 	if (fstat(ifd, &buf) < 0)
 		err(1, "unable to stat initrd file");
 
-	hdr->type_of_loader = 0xff;
-
 	unsigned int size = buf.st_size;
 
 	unsigned long addr = hdr->initrd_addr_max;
@@ -64,8 +62,9 @@ void load_kernel(struct vm_state *vms, struct cmd_opts *opts)
 	if (img == MAP_FAILED)
 		err(1, "unable to mmap linux image");
 
-	char *mem_setup = mmap(NULL, SETUP_LOAD_END - SETUP_LOAD_ADDR,
-			PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	size_t setup_sz = SETUP_LOAD_END - SETUP_LOAD_ADDR;
+	char *mem_setup = mmap(NULL, setup_sz, PROT_READ | PROT_WRITE,
+			MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	if (mem_setup == MAP_FAILED)
 		err(1, "unable to map backing memory");
 
@@ -82,6 +81,7 @@ void load_kernel(struct vm_state *vms, struct cmd_opts *opts)
 		boot.hdr.setup_sects = SETUP_SECTS;
 
 	boot.hdr.loadflags |= KEEP_SEGMENTS;
+	boot.hdr.type_of_loader = 0xff;
 
 	boot.hdr.cmd_line_ptr = SETUP_LOAD_ADDR + CMD_OFFSET;
 	boot.hdr.cmdline_size = opts->kcmd_sz;
@@ -90,7 +90,7 @@ void load_kernel(struct vm_state *vms, struct cmd_opts *opts)
 	boot.e820_entries = E820_NUM;
 
 	boot.e820_table[0].addr = SETUP_LOAD_ADDR;
-	boot.e820_table[0].size = SETUP_LOAD_END - SETUP_LOAD_ADDR;
+	boot.e820_table[0].size = setup_sz;
 	boot.e820_table[0].type = E820_RAM;
 
 	boot.e820_table[1].addr = IMAGE_LOAD_ADDR;
@@ -99,10 +99,6 @@ void load_kernel(struct vm_state *vms, struct cmd_opts *opts)
 
 	ssize_t setup_size = (boot.hdr.setup_sects + 1) << 9;
 	memcpy(mem_setup, img, setup_size);
-	memcpy(mem_setup, &boot, sizeof (struct boot_params));
-
-	kvm_add_region(vms, 0, SETUP_LOAD_ADDR, SETUP_LOAD_END - SETUP_LOAD_ADDR,
-		(uint64_t)mem_setup);
 
 	char *vmlinux = img + setup_size;
 	void *mem_kernel = mmap(NULL, opts->ram, PROT_READ | PROT_WRITE,
@@ -113,6 +109,8 @@ void load_kernel(struct vm_state *vms, struct cmd_opts *opts)
 
 	load_initrd(mem_kernel, opts, &boot.hdr);
 
+	memcpy(mem_setup, &boot, sizeof (struct boot_params));
+	kvm_add_region(vms, 0, SETUP_LOAD_ADDR, setup_sz, (uint64_t)mem_setup);
 	kvm_add_region(vms, 0, IMAGE_LOAD_ADDR, opts->ram, (uint64_t)mem_kernel);
 
 	vms->entry = (uint64_t)mem_kernel;

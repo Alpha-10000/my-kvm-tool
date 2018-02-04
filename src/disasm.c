@@ -12,9 +12,10 @@ void disasm(const uint64_t code, size_t size, uint64_t start_addr)
 		warn("unable to init capstone");
 		return;
 	}
+
 	cs_insn *insn;
 	size_t count = cs_disasm(handle, (uint8_t*)code, size, start_addr, 0, &insn);
-	if (count >0) {
+	if (count > 0) {
 		for (size_t j = 0; j < count; j++) {
 			printf("0x%"PRIx64":\t%s\t\t%s\n", insn[j].address,
 				insn[j].mnemonic, insn[j].op_str);

@@ -10,6 +10,9 @@ int main(int argc, char **argv)
 		err(1, "No kernel image");
 	if (!opts.ram)
 		err(1, "Please specify ram");
+	if (!opts.initrd)
+		err(1, "Please specify initrd");
+
 	kvm_run(&opts);
 	return 0;
 }

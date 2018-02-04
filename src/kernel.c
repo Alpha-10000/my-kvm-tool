@@ -13,6 +13,42 @@
 #include "kernel.h"
 #include "kvm.h"
 
+void load_initrd(char *mem, struct cmd_opts *opts, struct setup_header *hdr)
+{
+	int ifd = open(opts->initrd, O_RDONLY);
+	if (ifd < 0)
+		err(1, "unable to open initramfs file");
+
+	struct stat buf;
+	if (fstat(ifd, &buf) < 0)
+		err(1, "unable to stat initrd file");
+
+	hdr->type_of_loader = 0xff;
+
+	unsigned int size = buf.st_size;
+
+	unsigned long addr = hdr->initrd_addr_max;
+	for (;;) {
+		if (addr < IMAGE_LOAD_ADDR)
+			err(1, "Not enough ram for initrd");
+		if (addr < IMAGE_LOAD_ADDR + opts->ram - size)
+			break;
+		addr -= IMAGE_LOAD_ADDR;
+	}
+
+	char *img = mmap(NULL, size, PROT_READ, MAP_PRIVATE, ifd, 0);
+	if (img == MAP_FAILED)
+		err(1, "unable to mmap initramfs");
+
+	hdr->ramdisk_image = addr;
+	hdr->ramdisk_size = size;
+
+	memcpy(mem + (addr - IMAGE_LOAD_ADDR), img, size);
+
+	munmap(img, size);
+	close(ifd);
+}
+
 void load_kernel(struct vm_state *vms, struct cmd_opts *opts)
 {
 	int kfd = open(opts->img, O_RDONLY);
@@ -23,7 +59,7 @@ void load_kernel(struct vm_state *vms, struct cmd_opts *opts)
 	if (fstat(kfd, &buf) < 0)
 		err(1, "unable to stat linux image");
 
-	void *img = mmap(NULL, buf.st_size, PROT_READ|PROT_WRITE,
+	char *img = mmap(NULL, buf.st_size, PROT_READ|PROT_WRITE,
 			MAP_PRIVATE, kfd, 0);
 	if (img == MAP_FAILED)
 		err(1, "unable to mmap linux image");
@@ -34,9 +70,9 @@ void load_kernel(struct vm_state *vms, struct cmd_opts *opts)
 		err(1, "unable to map backing memory");
 
 	struct boot_params boot;
-	memset(&boot, '\0', sizeof (struct boot_params));
-	ssize_t setup_hdr_sz = 0x0202 + ((char*)img)[0x0201];
-	memcpy(&boot.hdr, (char*)img + SETUP_HDR, setup_hdr_sz);
+	memset(&boot, 0, sizeof (struct boot_params));
+	ssize_t setup_hdr_sz = 0x0202 + img[0x0201];
+	memcpy(&boot.hdr, img + SETUP_HDR, setup_hdr_sz);
 
 	if (memcmp(&boot.hdr.header, BZ_MAGIC, strlen(BZ_MAGIC)) != 0)
 		err(1, "file is not a valid bzimage");
@@ -68,12 +104,14 @@ void load_kernel(struct vm_state *vms, struct cmd_opts *opts)
 	kvm_add_region(vms, 0, SETUP_LOAD_ADDR, SETUP_LOAD_END - SETUP_LOAD_ADDR,
 		(uint64_t)mem_setup);
 
-	void *vmlinux = (char*)img + setup_size;
+	char *vmlinux = img + setup_size;
 	void *mem_kernel = mmap(NULL, opts->ram, PROT_READ | PROT_WRITE,
 			MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	if (mem_setup == MAP_FAILED)
 		err(1, "unable to map backing memory");
 	memcpy(mem_kernel, vmlinux, buf.st_size - setup_size);
+
+	load_initrd(mem_kernel, opts, &boot.hdr);
 
 	kvm_add_region(vms, 0, IMAGE_LOAD_ADDR, opts->ram, (uint64_t)mem_kernel);
 

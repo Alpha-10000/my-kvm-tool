@@ -1,7 +1,7 @@
 CC = gcc
 SRCDIR = src/
 INCLUDEDIR = include/
-CFLAGS = -Wall -Wextra -Werror -pedantic -I$(INCLUDEDIR) -O
+CFLAGS = -Wall -Wextra -Werror -pedantic -I$(INCLUDEDIR)
 LDFLAGS = -lcapstone
 
 SRC = $(addprefix $(SRCDIR), main.c cmd.c kvm.c io.c kernel.c disasm.c)

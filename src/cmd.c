@@ -40,7 +40,7 @@ static void dump_options(struct cmd_opts *opts)
 {
 	printf("\n");
 	printf("--initrd Initrd: %s\n", opts->initrd);
-	printf("-m       RAM memory: %d\n", opts->ram);
+	printf("-m       RAM memory: 0x%x\n", opts->ram);
 	printf("-h       help: %d\n", opts->help);
 	printf("BzImage: %s\n", opts->img);
 	printf("Command line: %s\n", opts->kcmd);
@@ -72,8 +72,8 @@ void parse_command_line(int argc, char *argv[], struct cmd_opts *opts)
 				err(1, "Option index %d\n", opt_ind);
 				break;
 			}
+			break;
 		case 'm':
-			// TODO : improve
 			opts->ram = atoi(optarg);
 			break;
 		case 'h':
@@ -96,6 +96,8 @@ void parse_command_line(int argc, char *argv[], struct cmd_opts *opts)
 			opts->img = argv[optind];
 		optind++;
 	}
-	if (opts->help)
+	if (opts->help) {
 		dump_options(opts);
+		exit(EXIT_SUCCESS);
+	}
 }

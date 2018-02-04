@@ -23,16 +23,17 @@ void kvm_add_region(struct vm_state *vm, uint32_t flags, uint64_t guest_phys,
 		.userspace_addr = user_addr,
 	};
 	ioctl(vm->fd_vm, KVM_SET_USER_MEMORY_REGION, &region);
-
 }
 
 static void handle_cpuid(struct vm_state *vms)
 {
-	struct kvm_cpuid2 cpuid;
-	memset(&cpuid, '\0', sizeof (struct kvm_cpuid2));
-	cpuid.nent = CPUID_NUM;
-	ioctl(vms->fd_kvm, KVM_GET_SUPPORTED_CPUID, &cpuid);
-	ioctl(vms->fd_vcpu, KVM_SET_CPUID2, &cpuid);
+	size_t size = sizeof(struct kvm_cpuid2)
+		+ CPUID_NUM * sizeof(struct kvm_cpuid_entry2);
+	struct kvm_cpuid2 *cpuid = calloc(1, size);
+	cpuid->nent = CPUID_NUM;
+	ioctl(vms->fd_kvm, KVM_GET_SUPPORTED_CPUID, cpuid);
+	ioctl(vms->fd_vcpu, KVM_SET_CPUID2, cpuid);
+	free(cpuid);
 }
 
 void kvm_run(struct cmd_opts *opts)
@@ -54,7 +55,7 @@ void kvm_run(struct cmd_opts *opts)
 	ioctl(vms->fd_vm, KVM_CREATE_IRQCHIP, 0);
 
 	struct kvm_pit_config pit;
-	memset(&pit, '\0', sizeof (struct kvm_pit_config));
+	memset(&pit, 0, sizeof (struct kvm_pit_config));
 	pit.flags |= KVM_PIT_SPEAKER_DUMMY;
 	ioctl(vms->fd_vm, KVM_CREATE_PIT2, &pit);
 

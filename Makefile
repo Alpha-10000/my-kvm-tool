@@ -9,7 +9,7 @@ OBJ = $(SRC:.c=.o)
 
 TESTDIR = tests
 
-EXEC = my-kvm
+EXEC = my-kvm-tool
 
 .PHONE : all clean check distclean
 

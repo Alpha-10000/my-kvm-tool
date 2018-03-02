@@ -13,11 +13,11 @@ Get Linux:
 Build kernel and test:
   $ make check
 
-Usage: my-kvm [options] bzImage [kernel command line]
+Usage: my-kvm-tool [options] bzImage [kernel command line]
 Options:
   --initrd <file>	Specify initial ramdisk
   -m	   		Specify amount of RAM
   -h			Display help
 
 Example:
-  $ ./my-kvm path/to/bzImage -m $((4096*8*4096)) console=ttyS0 earlyprintk=serial --initrd path/to/initramfs
+  $ ./my-kvm-tool path/to/bzImage -m $((4096*8*4096)) console=ttyS0 --initrd path/to/initramfs
